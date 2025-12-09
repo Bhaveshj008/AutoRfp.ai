@@ -1,5 +1,7 @@
 // config/db.js
 const { Sequelize } = require('sequelize');
+const pg = require('pg');          // force bundler to include pg
+require('pg-hstore');              // safe to require once for Sequelize+Postgres
 require('dotenv').config();
 
 const DB_CACHE = new Map(); // cache per dbName
@@ -25,7 +27,8 @@ function createSequelize(dbName) {
     host,
     port,
     dialect: 'postgres',
-    logging: false, // change to console.log if you want SQL logs
+    dialectModule: pg,            // critical line: use this module instead of internal require
+    logging: false,               // change to console.log if you want SQL logs
     dialectOptions: {
       ssl: {
         require: true,
