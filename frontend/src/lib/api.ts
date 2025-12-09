@@ -26,7 +26,16 @@ import {
   Proposal,
 } from '@/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://api-auto-rpf-ai.vercel.app';
+const ENV = import.meta.env.VITE_ENVIRONMENT || "LOCAL";
+
+const API_BASE_URL = {
+  LOCAL: import.meta.env.VITE_LOCAL_API_BASE_URL,
+  TEST: import.meta.env.VITE_TEST_API_BASE_URL,
+}[ENV];
+
+if (!API_BASE_URL) {
+  throw new Error(`API_BASE_URL not defined for ENV=${ENV}`);
+}
 
 type ApiAction =
   | 'AnalyzeRfpPreview'
