@@ -7,6 +7,10 @@ const {
 } = require("../utils/dynamicAssociations");
 const { parseProposalWithGroq } = require("../utils/groqClient");
 const { sendEmail } = require("../utils/emailClient");
+const {
+  updateVendorOnAward,
+  updateVendorOnReject,
+} = require("../utils/vendorRatingUtils");
 
 /**
  * Parse proposals from inbound emails using AI
@@ -386,6 +390,15 @@ const awardProposalService = async (data) => {
 
     await t.commit();
 
+    // --------- Update vendor rating after award ---------
+    setImmediate(async () => {
+      try {
+        await updateVendorOnAward(vendor_id, targetProposal);
+      } catch (err) {
+        console.error(" Error updating vendor rating on award:", err.message);
+      }
+    });
+
     // --------- Async emails after commit (award + rejections) ---------
 
     // Award email
@@ -483,6 +496,15 @@ const rejectProposalService = async (data) => {
     ]);
 
     await proposal.update({ status: "rejected" });
+
+    // --------- Update vendor rejection count ---------
+    setImmediate(async () => {
+      try {
+        await updateVendorOnReject(vendor_id);
+      } catch (err) {
+        console.error(" Error updating vendor rating on reject:", err.message);
+      }
+    });
 
     // Send rejection email asynchronously (non-blocking)
     if (vendor && vendor.email && rfp) {

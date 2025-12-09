@@ -49,7 +49,14 @@ export interface Vendor {
   id: string;
   name: string;
   email: string;
-  rating: number | null;
+  rating: number | string | null; // Can be Decimal object from backend
+  total_projects?: number;
+  successful_projects?: number;
+  average_delivery_days?: number | null;
+  on_time_percentage?: number | null;
+  average_proposal_score?: number | null;
+  rejection_count?: number;
+  last_awarded_at?: string | null;
   tags: string[];
   created_at?: string;
   updated_at?: string;
@@ -79,6 +86,7 @@ export interface Proposal {
     id: string;
     name: string;
     email: string;
+    rating?: number | string | null;
   } | null;
   version: number;
   total_price: number | null;
@@ -87,7 +95,7 @@ export interface Proposal {
   warranty_text: string | null;
   payment_terms?: string | null;
   status: 'pending' | 'awarded' | 'rejected';
-  ai_score: number | null;
+  ai_score: number | string | null; // Can be Decimal from backend
   ai_reasoning: string | null;
   items: ProposalItem[];
   created_at: string;

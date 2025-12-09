@@ -35,7 +35,7 @@ const createVendorService = async (vendors) => {
     const payload = normalizedVendors.map(({ name, email, rating, tags }) => ({
       name,
       email,
-      rating: rating ?? null,
+      rating: rating ?? 0,
       tags: Array.isArray(tags) ? tags : [],
     }));
 

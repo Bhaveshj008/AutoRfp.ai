@@ -26,6 +26,7 @@ import { BulkVendorImport } from '@/components/rfp/BulkVendorImport';
 import { LoadingState, Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useVendors, useCreateVendor, useDeleteVendor, useUpdateVendor } from '@/hooks/useVendors';
+import { formatRatingSafe } from '@/lib/formatUtils';
 import { Users, Plus, Search, Star, Trash2, Mail, Edit } from 'lucide-react';
 
 export default function VendorsPage() {
@@ -321,10 +322,10 @@ export default function VendorsPage() {
                           <TagList tags={vendor.tags} />
                         </TableCell>
                         <TableCell>
-                          {vendor.rating && (
+                          {vendor.rating !== null && vendor.rating !== undefined && (
                             <div className="flex items-center gap-1 text-sm font-medium text-warning">
                               <Star className="h-4 w-4 fill-current" />
-                              {vendor.rating.toFixed(1)}
+                              {formatRatingSafe(vendor.rating, 1)}
                             </div>
                           )}
                         </TableCell>

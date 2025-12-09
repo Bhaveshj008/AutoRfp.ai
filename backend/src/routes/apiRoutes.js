@@ -26,6 +26,8 @@ const {
   createVendorController,
   updateVendorController,
   deleteVendorController,
+  setVendorRatingController,
+  getVendorRatingSummaryController,
 } = require('../controllers/vendorController');
 
 const { sanitizeError } = require('../utils/errorUtils');
@@ -89,6 +91,14 @@ router.post('/', async (req, res) => {
 
       case 'DeleteVendor':
         response = await deleteVendorController(data);
+        break;
+
+      case 'SetVendorRating':
+        response = await setVendorRatingController(data);
+        break;
+
+      case 'GetVendorRatingSummary':
+        response = await getVendorRatingSummaryController(data);
         break;
 
       // ========== EMAILS ==========

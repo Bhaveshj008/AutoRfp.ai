@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { TagList } from '@/components/common/Tag';
 import { BulkVendorImport } from '@/components/rfp/BulkVendorImport';
+import { formatRatingSafe } from '@/lib/formatUtils';
 import { Vendor } from '@/types';
 import { Check, Plus, Send, Star, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -155,10 +156,10 @@ export function VendorSelector({
                 </div>
                 <div className="flex items-center gap-4">
                   <TagList tags={vendor.tags} />
-                  {vendor.rating && (
+                  {vendor.rating !== null && vendor.rating !== undefined && (
                     <div className="flex items-center gap-1 text-sm font-medium text-warning bg-warning/10 px-2 py-1 rounded">
                       <Star className="h-3 w-3 fill-current" />
-                      {vendor.rating.toFixed(1)}
+                      {formatRatingSafe(vendor.rating, 1)}
                     </div>
                   )}
                 </div>

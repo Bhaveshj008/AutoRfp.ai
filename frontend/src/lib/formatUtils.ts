@@ -128,3 +128,29 @@ export const getSafeLengthSafe = (
     return defaultValue;
   }
 };
+
+/**
+ * Safe rating formatting (handles Decimal objects from database)
+ * Converts any number-like value to fixed decimal places
+ */
+export const formatRatingSafe = (
+  rating: any,
+  decimals: number = 1,
+  defaultValue: string = 'N/A'
+): string => {
+  try {
+    if (rating === null || rating === undefined) return defaultValue;
+
+    // Handle Decimal objects and string numbers
+    const numRating = typeof rating === 'number' 
+      ? rating 
+      : parseFloat(String(rating));
+
+    if (isNaN(numRating)) return defaultValue;
+
+    return numRating.toFixed(decimals);
+  } catch (error) {
+    console.warn('Error formatting rating:', error);
+    return defaultValue;
+  }
+};

@@ -23,7 +23,39 @@ module.exports = (sequelize) => {
         unique: true,
       },
       rating: {
-        type: DataTypes.DECIMAL(3, 2), // 0–9.99 (you'll use 0–5)
+        type: DataTypes.DECIMAL(4, 2), // 0–10.00 (0-10 scale)
+        allowNull: false,
+        defaultValue: 0,
+      },
+      total_projects: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      successful_projects: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      average_delivery_days: {
+        type: DataTypes.DECIMAL(6, 2),
+        allowNull: true,
+      },
+      on_time_percentage: {
+        type: DataTypes.DECIMAL(5, 2), // 0-100
+        allowNull: true,
+      },
+      average_proposal_score: {
+        type: DataTypes.DECIMAL(5, 2), // 0-100
+        allowNull: true,
+      },
+      rejection_count: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0,
+      },
+      last_awarded_at: {
+        type: DataTypes.DATE,
         allowNull: true,
       },
       tags: {

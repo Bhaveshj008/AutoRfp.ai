@@ -2,6 +2,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatRatingSafe } from '@/lib/formatUtils';
 import {
   Table,
   TableBody,
@@ -122,7 +123,7 @@ export default function RfpComparePage() {
                 <div>
                   <p className="font-semibold text-foreground">AI Recommendation</p>
                   <p className="text-muted-foreground">
-                    Based on analysis, <span className="font-medium text-primary">{recommendedVendor.vendor?.name}</span> offers the best value with a score of {recommendedVendor.ai_score}.
+                    Based on analysis, <span className="font-medium text-primary">{recommendedVendor.vendor?.name}</span> offers the best value with a score of {formatRatingSafe(recommendedVendor.ai_score, 0)}/100.
                   </p>
                 </div>
               </div>

@@ -230,23 +230,46 @@ Rules:
 - total_price = realistic sum.
 - matches_rfp: yes/partial/no based on quantity+spec.
 
-Scoring (0–100) MUST be **relative**, not absolute:
-- Start at 100 for a perfect theoretical match.
-- Subtract penalties:
-  * price_penalty = ((total_price - RFP_JSON.best_price) / RFP_JSON.best_price) * 30.
-  * delivery_penalty = (delivery_days - RFP_JSON.best_delivery_days) * 1.0.
-  * spec_penalty = 10 if specs unclear or weaker.
-  * missing_items_penalty = 20 if any RFP item missing.
-  * vague_email_penalty = 40 if no quantities/prices.
+Scoring (0–100) Algorithm:
 
-Hard caps:
-- price > budget_cap * 1.2 → score<=50.
-- missing key items → score<=60.
+BASE SCORE (proposal quality, 0-100):
+1. Start at 100 for perfect match.
+2. Subtract proposal penalties:
+   * price_penalty = ((total_price - RFP_best_price) / RFP_best_price) * 30
+   * delivery_penalty = (delivery_days - RFP_best_delivery) * 1.0
+   * spec_penalty = 10 if unclear/weaker specs
+   * missing_items_penalty = 20 per missing item
+   * vague_email_penalty = 40 if no prices/quantities
+3. Hard caps:
+   * price > budget_cap * 1.2 → base_score ≤ 50
+   * missing key items → base_score ≤ 60
+
+VENDOR RATING BOOST (historical performance):
+- VENDOR_RATING is 0-10 scale (0 = new vendor, 10 = proven vendor)
+- For NEW VENDORS (rating < 1.0): NO penalty, NO bonus - pure proposal score
+- For ESTABLISHED VENDORS (rating ≥ 1.0): 
+  * rating_boost = (VENDOR_RATING / 10) * 15 (0-15 point bonus)
+  * final_score = base_score + rating_boost (capped at 100)
+
+CRITICAL: NEW VENDORS MUST COMPETE FAIRLY:
+- New vendor with rating=0 gets score = base_score (no penalty)
+- Established vendor with rating=3 and same proposal: base_score + 4.5
+- New vendor good proposal can OUTSCORE bad proposals from rated vendors
+- Only reward vendors proven to deliver consistently
+
+EXAMPLES:
+- New vendor, perfect proposal (rating=0): 95 → 95
+- Established vendor, perfect proposal (rating=8/10): 95 + 12 = 100 (capped)
+- New vendor, fair proposal (rating=0): 70 → 70
+- Established vendor, fair proposal (rating=7/10): 70 + 10.5 = 80.5
 
 Important:
-- **Vendors with worse pricing MUST get lower scores.**
-- **Vendors with slower delivery MUST get lower scores.**
-- Do NOT cluster scores.
+- **Vendors with worse pricing get lower scores.**
+- **Vendors with slower delivery get lower scores.**
+- **New vendors can win with great proposals.**
+- **High-rated vendors get 15pt max bonus.**
+- **Do NOT cluster scores around 70-75.**
+- Always include ai_reasoning explaining the breakdown.
 - JSON only.
 `;
 
@@ -259,16 +282,34 @@ async function parseProposalWithGroq({ rfp, email, vendor }) {
     if (x?.items) items = x.items;
   } catch (_) {}
 
+  // Prepare vendor context with rating for AI
+  // New vendors (rating < 1.0) won't get penalty/bonus - competes on proposal alone
+  // Established vendors (rating >= 1.0) get historical bonus
+  const vendorContext = {
+    ...vendor,
+    rating: vendor.rating || 0, // Include historical rating (0-10 scale)
+    is_new_vendor: (vendor.rating || 0) < 1.0, // Flag new vendors
+    is_established_vendor: (vendor.rating || 0) >= 1.0, // Flag proven vendors
+
+    total_projects: vendor.total_projects || 0,
+    successful_projects: vendor.successful_projects || 0,
+    on_time_percentage: vendor.on_time_percentage || 0,
+    average_proposal_score: vendor.average_proposal_score || 0,
+    rejection_count: vendor.rejection_count || 0,
+  };
+
   const prompt =
     PROPOSAL_SYSTEM_INSTRUCTION +
     "\nRFP_JSON:\n" +
     JSON.stringify({ ...rfp, items }) +
-    "\nVENDOR_JSON:\n" +
-    JSON.stringify(vendor) +
+    "\nVENDOR_RATING:\n" +
+    JSON.stringify(vendorContext) +
     "\nEMAIL_JSON:\n" +
     JSON.stringify(email);
-  console.log(prompt);
-  console.log(GROQ_MODEL);
+  
+  console.log("🤖 Parsing proposal with AI (vendor rating included)");
+  console.log(`   Vendor: ${vendor.name} | Rating: ${vendor.rating}/10`);
+  
   const raw = await callGroqRaw(prompt);
   const parsed = safeJsonParse(raw);
   return normalizeProposalOutput(parsed);
