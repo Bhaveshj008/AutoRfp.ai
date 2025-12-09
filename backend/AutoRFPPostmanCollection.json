@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "AutoRFP.ai - Action APIs",
+    "_postman_id": "6e3a7c44-0000-4b11-9000-autorfp",
+    "description": "Action-based API collection for AutoRFP.ai (single POST /api, action routed via body.action).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000"
+    }
+  ],
+  "item": [
+    {
+      "name": "RFP - Analyze Preview",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"AnalyzeRfpPreview\",\n  \"data\": {\n    \"prompt\": \"I need to procure laptops and monitors for our new office. Budget is $50,000 total. Need delivery within 30 days. We need 20 laptops with 16GB RAM and 15 monitors 27-inch. Payment terms should be net 30, and we need at least 1 year warranty.\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "RFP - Create from Preview",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"CreateRfp\",\n  \"data\": {\n    \"prompt\": \"I need to procure laptops and monitors for our new office...\",\n    \"ai_structured\": {\n      \"title\": \"Office Hardware Procurement - New Office\",\n      \"summary\": \"Procurement of 20 laptops and 15 monitors\",\n      \"budgetCap\": 50000,\n      \"currency\": \"USD\",\n      \"deadlineDays\": 30,\n      \"items\": [\n        { \"item\": \"Laptop\", \"specs\": \"16GB RAM\", \"quantity\": 20 },\n        { \"item\": \"Monitor\", \"specs\": \"27-inch\", \"quantity\": 15 }\n      ],\n      \"constraints\": {\n        \"paymentTerms\": \"Net 30\",\n        \"minWarrantyYears\": 1\n      }\n    }\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "RFP - List RFPs",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ListRfps\",\n  \"data\": {\n    \"status\": \"draft\",   \n    \"page\": 1,\n    \"limit\": 20\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "RFP - Get RFP Details",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"GetRfpDetails\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Vendors - Create Vendor",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"CreateVendor\",\n  \"data\": {\n    \"name\": \"TechFlow Solutions\",\n    \"email\": \"sales@techflow.com\",\n    \"tags\": \"Premium,Reliable\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Vendors - List Vendors",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ListVendors\",\n  \"data\": {\n    \"search\": \"Tech\",   \n    \"page\": 1,\n    \"limit\": 20\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Vendors - Update Vendor",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"UpdateVendor\",\n  \"data\": {\n    \"vendor_id\": \"00000000-0000-0000-0000-000000000010\",\n    \"name\": \"TechFlow Solutions Pvt Ltd\",\n    \"email\": \"sales@techflow.com\",\n    \"tags\": \"Premium,Reliable,Fast\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Vendors - Delete Vendor",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"DeleteVendor\",\n  \"data\": {\n    \"vendor_id\": \"00000000-0000-0000-0000-000000000010\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "RFP - Send RFP to Vendors",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"SendRfp\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\",\n    \"vendor_ids\": [\n      \"00000000-0000-0000-0000-000000000010\",\n      \"00000000-0000-0000-0000-000000000011\"\n    ]\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Emails - List Inbox (by RFP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ListEmails\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\",\n    \"page\": 1,\n    \"limit\": 20\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Proposals - Parse Proposals for RFP (AI)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ParseProposals\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Proposals - List Proposals (for Compare screen)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"ListProposals\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Proposals - Award Proposal (mark winner)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"AwardProposal\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\",\n    \"vendor_id\": \"00000000-0000-0000-0000-000000000010\"\n  }\n}"
+        }
+      }
+    },
+    {
+      "name": "Proposals - Reject Proposal",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api",
+          "host": ["{{baseUrl}}"],
+          "path": ["api"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"action\": \"RejectProposal\",\n  \"data\": {\n    \"rfp_id\": \"00000000-0000-0000-0000-000000000001\",\n    \"vendor_id\": \"00000000-0000-0000-0000-000000000011\"\n  }\n}"
+        }
+      }
+    }
+  ]
+}

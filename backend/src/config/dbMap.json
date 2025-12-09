@@ -1,0 +1,15 @@
+{
+  "databases": {
+    "RFP": {
+      "DB_NAME": "rfp_ai",
+      "tables": {
+          "VENDORS": "vendors",
+          "RFPS": "rfps",
+          "RFP_VENDORS": "rfp_vendors",
+          "EMAILS": "emails",
+          "PROPOSALS": "proposals",
+          "PROPOSAL_ITEMS": "proposal_items"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+  AnalyzeRfpPreview
+  CreateRfp
+  ListRfps
+  GetRfpDetails
+  SendRfp
+  CreateVendor
+  UpdateVendor
+  DeleteVendor
+  ListVendors
+  ListProposals
+  AwardProposal
+  RejectProposal
+  ParseProposals
+  ListEmails
+  FetchEmails

@@ -1,0 +1,170 @@
+{
+  "SUCCESS": {
+    "RFP_ANALYZE_PREVIEW": {
+      "statusCode": 200,
+      "message": "RFP analyzed successfully"
+    },
+    "RFP_CREATED": {
+      "statusCode": 201,
+      "message": "RFP created successfully"
+    },
+    "RFP_LISTED": {
+      "statusCode": 201,
+      "message": "RFP listed successfully"
+    },
+    "RFP_SENT": {
+      "statusCode": 200,
+      "message": "RFP sent to vendors successfully"
+    },
+    "RFP_EMAILS_LISTED": {
+      "statusCode": 200,
+      "message": "RFP emails retrieved successfully"
+    },
+    "RFP_EMAILS_FETCHED": {
+      "statusCode": 200,
+      "message": "Emails fetched and synced successfully"
+    },
+    "RFP_PROPOSALS_PARSED": {
+      "statusCode": 200,
+      "message": "Proposals parsed successfully"
+    },
+    "RFP_PROPOSAL_AWARDED": {
+      "statusCode": 200,
+      "message": "Proposal awarded successfully"
+    },
+    "RFP_PROPOSAL_REJECTED": {
+      "statusCode": 200,
+      "message": "Proposal rejected successfully"
+    },
+    "RFP_DETAILS_RETRIEVED": {
+      "statusCode": 200,
+      "message": "RFP details retrieved successfully"
+    },
+    "PROPOSALS_LISTED": {
+      "statusCode": 200,
+      "message": "Proposals listed successfully"
+    },
+    "VENDORS_LISTED": {
+      "statusCode": 200,
+      "message": "Vendors retrieved successfully"
+    },
+    "VENDOR_CREATED": {
+      "statusCode": 201,
+      "message": "Vendor created successfully"
+    },
+    "VENDOR_UPDATED": {
+      "statusCode": 200,
+      "message": "Vendor updated successfully"
+    },
+    "VENDOR_DELETED": {
+      "statusCode": 200,
+      "message": "Vendor deleted successfully"
+    },
+    "HEALTH_OK": {
+      "statusCode": 200,
+      "message": "Server is healthy"
+    }
+  },
+  "ERROR": {
+    "APINAME_REQUIRED": {
+      "statusCode": 400,
+      "message": "Action is required"
+    },
+    "INVALID_APINAME": {
+      "statusCode": 400,
+      "message": "Invalid action provided"
+    },
+    "VALIDATION_ERROR": {
+      "statusCode": 400,
+      "message": "Validation failed"
+    },
+    "RFP_NOT_FOUND": {
+      "statusCode": 404,
+      "message": "RFP not found"
+    },
+    "RFP_ALREADY_CLOSED": {
+      "statusCode": 400,
+      "message": "RFP is already closed"
+    },
+    "RFP_ANALYZE_FAILED": {
+      "statusCode": 400,
+      "message": "Failed to analyze RFP with AI"
+    },
+    "VENDOR_NOT_FOUND": {
+      "statusCode": 404,
+      "message": "Vendor not found"
+    },
+    "VENDOR_EMAIL_EXISTS": {
+      "statusCode": 409,
+      "message": "Vendor with this email already exists"
+    },
+    "NO_VENDORS_PROVIDED": {
+      "statusCode": 400,
+      "message": "No valid vendors found for provided vendor IDs"
+    },
+    "EMAIL_SEND_FAILED": {
+      "statusCode": 500,
+      "message": "Failed to send RFP emails. Please try again later"
+    },
+    "NO_INBOUND_EMAILS": {
+      "statusCode": 404,
+      "message": "No inbound emails found for this RFP"
+    },
+    "PROPOSAL_NOT_FOUND": {
+      "statusCode": 404,
+      "message": "Proposal not found for given RFP and vendor"
+    },
+    "MISSING_REQUIRED_FIELD": {
+      "statusCode": 400,
+      "message": "Required field is missing"
+    },
+    "INVALID_UUID": {
+      "statusCode": 400,
+      "message": "Invalid UUID format"
+    },
+    "INVALID_EMAIL": {
+      "statusCode": 400,
+      "message": "Invalid email address"
+    },
+    "INVALID_RATING": {
+      "statusCode": 400,
+      "message": "Rating must be between 0 and 5"
+    },
+    "UNAUTHORIZED": {
+      "statusCode": 401,
+      "message": "Unauthorized access"
+    },
+    "FORBIDDEN": {
+      "statusCode": 403,
+      "message": "Access denied"
+    },
+    "NOT_FOUND": {
+      "statusCode": 404,
+      "message": "Requested resource not found"
+    },
+    "INTERNAL_SERVER": {
+      "statusCode": 500,
+      "message": "Internal server error. Please try again later"
+    },
+    "DATABASE_ERROR": {
+      "statusCode": 500,
+      "message": "Database operation failed"
+    },
+    "TRANSACTION_FAILED": {
+      "statusCode": 500,
+      "message": "Transaction failed. Changes rolled back"
+    },
+    "AI_SERVICE_ERROR": {
+      "statusCode": 500,
+      "message": "AI service unavailable. Please try again later"
+    },
+    "IMAP_CONNECTION_ERROR": {
+      "statusCode": 500,
+      "message": "Failed to connect to email service"
+    },
+    "EMAIL_PARSING_ERROR": {
+      "statusCode": 500,
+      "message": "Failed to parse email content"
+    }
+  }
+}
