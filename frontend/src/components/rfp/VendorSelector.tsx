@@ -16,6 +16,7 @@ interface VendorSelectorProps {
   onSelectionChange: (ids: string[]) => void;
   onSend: () => void;
   onAddVendor: (vendor: { name: string; email: string; tags: string }) => void;
+  onBulkAddVendors?: (vendors: Array<{ name: string; email: string; tags: string }>) => void;
   isSending?: boolean;
 }
 
@@ -25,6 +26,7 @@ export function VendorSelector({
   onSelectionChange,
   onSend,
   onAddVendor,
+  onBulkAddVendors,
   isSending = false,
 }: VendorSelectorProps) {
   const [isAddingVendor, setIsAddingVendor] = useState(false);
@@ -46,8 +48,13 @@ export function VendorSelector({
   };
 
   const handleBulkImport = async (importedVendors: Array<{ name: string; email: string; tags: string }>) => {
-    for (const vendor of importedVendors) {
-      onAddVendor(vendor);
+    // Use bulk callback if provided, otherwise fall back to single adds
+    if (onBulkAddVendors) {
+      await onBulkAddVendors(importedVendors);
+    } else {
+      for (const vendor of importedVendors) {
+        onAddVendor(vendor);
+      }
     }
   };
 

@@ -11,7 +11,7 @@ import { EmailsList } from '@/components/rfp/EmailsList';
 import { LoadingState } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { useRfpDetails, useProposals, useSendRfp } from '@/hooks/useRfps';
-import { useVendors, useCreateVendor } from '@/hooks/useVendors';
+import { useVendors, useCreateVendor, useBulkCreateVendor } from '@/hooks/useVendors';
 import { FileText, Users, Inbox, Mail, BarChart3, ArrowLeft } from 'lucide-react';
 
 export default function RfpDetailPage() {
@@ -25,6 +25,7 @@ export default function RfpDetailPage() {
   
   const sendRfpMutation = useSendRfp();
   const createVendorMutation = useCreateVendor();
+  const bulkCreateVendorMutation = useBulkCreateVendor();
 
   const handleSendRfp = async () => {
     if (!id || selectedVendorIds.length === 0) return;
@@ -47,6 +48,22 @@ export default function RfpDetailPage() {
     if (result) {
       setSelectedVendorIds((prev) => [...prev, result.id]);
     }
+  };
+
+  const handleBulkAddVendors = async (importedVendors: Array<{ name: string; email: string; tags: string }>) => {
+    // Transform all vendors to expected format (tags as array)
+    const vendorsToCreate = importedVendors.map((vendor) => ({
+      name: vendor.name,
+      email: vendor.email,
+      tags: vendor.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0),
+    }));
+
+    // Send all vendors in a single API call and auto-select them
+    const results = await bulkCreateVendorMutation.mutateAsync(vendorsToCreate);
+    setSelectedVendorIds((prev) => [...prev, ...results.map((v) => v.id)]);
   };
 
   if (rfpLoading) {
@@ -153,6 +170,7 @@ export default function RfpDetailPage() {
                 onSelectionChange={setSelectedVendorIds}
                 onSend={handleSendRfp}
                 onAddVendor={handleAddVendor}
+                onBulkAddVendors={handleBulkAddVendors}
                 isSending={sendRfpMutation.isPending}
               />
             )}

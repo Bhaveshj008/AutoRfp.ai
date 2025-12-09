@@ -48,6 +48,36 @@ export function useCreateVendor() {
   });
 }
 
+export function useBulkCreateVendor() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (vendors: Array<{ name: string; email: string; tags: string[] }>) => {
+      // Send all vendors in a single API call
+      const response = await createVendor(vendors);
+      if (!response.success) {
+        throw new Error(getErrorMessage(response));
+      }
+      return response.data as Vendor[];
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['vendors'] });
+      toast({
+        title: 'Vendors Imported',
+        description: `Successfully imported ${data.length} vendor${data.length !== 1 ? 's' : ''}.`,
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Failed to Import Vendors',
+        description: getErrorMessage(error),
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
 export function useUpdateVendor() {
   const queryClient = useQueryClient();
   const { toast } = useToast();

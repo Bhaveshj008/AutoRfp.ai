@@ -25,7 +25,7 @@ import { TagList } from '@/components/common/Tag';
 import { BulkVendorImport } from '@/components/rfp/BulkVendorImport';
 import { LoadingState, Spinner } from '@/components/common/Spinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { useVendors, useCreateVendor, useDeleteVendor, useUpdateVendor } from '@/hooks/useVendors';
+import { useVendors, useCreateVendor, useDeleteVendor, useUpdateVendor, useBulkCreateVendor } from '@/hooks/useVendors';
 import { formatRatingSafe } from '@/lib/formatUtils';
 import { Users, Plus, Search, Star, Trash2, Mail, Edit } from 'lucide-react';
 
@@ -38,6 +38,7 @@ export default function VendorsPage() {
 
   const { data: vendors = [], isLoading } = useVendors(searchQuery || undefined);
   const createMutation = useCreateVendor();
+  const bulkCreateMutation = useBulkCreateVendor();
   const updateMutation = useUpdateVendor();
   const deleteMutation = useDeleteVendor();
 
@@ -94,18 +95,18 @@ export default function VendorsPage() {
   };
 
   const handleBulkImport = async (importedVendors: Array<{ name: string; email: string; tags: string }>) => {
-    for (const vendor of importedVendors) {
-      const tagsArray = vendor.tags
+    // Transform all vendors to expected format (tags as array)
+    const vendorsToCreate = importedVendors.map((vendor) => ({
+      name: vendor.name,
+      email: vendor.email,
+      tags: vendor.tags
         .split(',')
         .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0);
-      
-      await createMutation.mutateAsync({
-        name: vendor.name,
-        email: vendor.email,
-        tags: tagsArray,
-      });
-    }
+        .filter((tag) => tag.length > 0),
+    }));
+
+    // Send all vendors in a single API call (no loop!)
+    await bulkCreateMutation.mutateAsync(vendorsToCreate);
   };
 
   return (
