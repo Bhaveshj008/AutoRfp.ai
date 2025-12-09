@@ -19,8 +19,9 @@
     "mailparser": "^3.9.0",
     "node-email-reply-parser": "^0.1.4",
     "nodemailer": "^7.0.3",
-    "pg": "^8.13.1",
-    "sequelize": "^6.37.5",
+    "pg": "^8.16.3",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7",
     "zod": "^3.25.76",
     "zod-fragments": "^1.0.1"
   }
