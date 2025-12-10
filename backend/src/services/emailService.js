@@ -11,6 +11,8 @@ const {
   buildRfpReplyTo,
   generateReplyToken,
 } = require("../utils/emailRouting");
+const { sendRfpInviteEmails } = require("../utils/emailSendingUtils");
+const logger = require("../utils/logger");
 
 /**
  * List inbound emails for an RFP with pagination
@@ -79,7 +81,7 @@ const listEmailsService = async (data) => {
       created_at: e.created_at,
     }));
   } catch (error) {
-    console.error(" Error in listEmailsService:", error);
+    logger.error("listEmailsService error", { error: error.message });
     throw error;
   }
 };
@@ -91,7 +93,7 @@ const fetchEmailsService = async () => {
   try {
     const { pollInboxForRfpEmails } = require("../workers/imapWorker");
 
-    console.log("[INFO] Starting email fetch service...");
+    logger.info("Starting email fetch service");
     await pollInboxForRfpEmails();
 
     return {
@@ -99,110 +101,56 @@ const fetchEmailsService = async () => {
       message: "Emails fetched and synced to database",
     };
   } catch (error) {
-    console.error(" Error in fetchEmailsService:", error);
+    logger.error("fetchEmailsService error", { error: error.message });
     throw error;
   }
 };
 
 /**
  * Send RFP invitations to vendors asynchronously
+ * All complexity (retries, concurrency, DB updates) handled internally
  */
-// Small utility to process items with bounded concurrency
-async function processWithConcurrency(items, concurrency, handler) {
-  let index = 0;
-
-  async function worker() {
-    while (true) {
-      const current = index++;
-      if (current >= items.length) break;
-
-      const item = items[current];
-      try {
-        await handler(item);
-      } catch (err) {
-        // handler should already log errors; don't rethrow to avoid killing other workers
-        console.error("Error in concurrency worker:", err);
-      }
-    }
-  }
-
-  const workerCount = Math.min(concurrency, items.length);
-  const workers = [];
-  for (let i = 0; i < workerCount; i++) {
-    workers.push(worker());
-  }
-
-  await Promise.all(workers);
-}
-
-// Sends one invite + records email + updates mapping
-async function sendSingleInvite({ Emails, RfpVendors, emailData }) {
-  const { to, subject, text, html, replyTo, rfp_id, vendor_id, mapping_id } =
-    emailData;
-
-  try {
-    const sendResult = await sendEmail({
-      to,
-      subject,
-      text,
-      html,
-      replyTo,
-    });
-
-    const email = await Emails.create({
-      rfp_id,
-      vendor_id,
-      direction: "outbound",
-      subject,
-      body_text: text,
-      raw_payload: null,
-      message_id: sendResult.messageId,
-      sent_at: new Date(),
-      received_at: null,
-    });
-
-    await RfpVendors.update(
-      {
-        invite_status: "sent",
-        last_email_id: email.id,
-      },
-      { where: { id: mapping_id } }
-    );
-
-    console.log(` Invite email sent to ${to}`);
-  } catch (err) {
-    console.error(` Failed to send invite email to ${to}:`, err.message);
-
-    // Mark mapping as failed but don’t throw to keep other sends going
-    await RfpVendors.update(
-      { invite_status: "failed" },
-      { where: { id: mapping_id } }
-    );
-  }
-}
-
 const sendRfpService = async (data) => {
   const db = databases.RFP.DB_NAME;
   const { sequelize, Rfps, Vendors, RfpVendors, Emails, RfpItems } =
     getModels(db);
 
+  const requestId = `RFP_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Request tracing
+
+  // FIX #1: Validate BEFORE opening transaction to avoid connection leak
+  const { rfp_id, vendor_ids } = data;
+  
+  if (!Array.isArray(vendor_ids) || vendor_ids.length === 0) {
+    return { error: "vendor_ids must be a non-empty array" };
+  }
+
   const t = await sequelize.transaction();
 
   try {
-    const { rfp_id, vendor_ids } = data;
+    logger.info(`[${requestId}] Starting SendRfp`, { rfp_id, vendor_count: vendor_ids.length });
 
-    const rfp = await Rfps.findOne({ where: { id: rfp_id }, transaction: t });
+    // Fetch and lock RFP row (for consistency)
+    const rfp = await Rfps.findOne({
+      where: { id: rfp_id },
+      transaction: t,
+      lock: true, // Prevents concurrent modifications
+    });
+
     if (!rfp) {
       await t.rollback();
+      logger.warn(`[${requestId}] RFP not found`, { rfp_id });
       return { error: "RFP not found" };
     }
 
     if (rfp.status === "closed") {
       await t.rollback();
+      logger.warn(`[${requestId}] RFP already closed`, { rfp_id });
       return { error: "RFP is already closed" };
     }
 
-    // Load requested items for the email body
+    logger.debug(`[${requestId}] RFP loaded`, { status: rfp.status, title: rfp.title });
+
+    // Load RFP items for email body
     const rfpItems = await RfpItems.findAll({
       where: { rfp_id },
       order: [
@@ -212,6 +160,9 @@ const sendRfpService = async (data) => {
       transaction: t,
     });
 
+    logger.debug(`[${requestId}] RFP items loaded`, { count: rfpItems.length });
+
+    // Validate vendors exist
     const vendors = await Vendors.findAll({
       where: { id: { [Op.in]: vendor_ids } },
       transaction: t,
@@ -219,16 +170,26 @@ const sendRfpService = async (data) => {
 
     if (!vendors.length) {
       await t.rollback();
+      logger.warn(`[${requestId}] No valid vendors found`, { requested: vendor_ids.length });
       return { error: "No valid vendors found for provided vendor_ids" };
     }
 
-    // Preload existing mappings in one go
+    if (vendors.length < vendor_ids.length) {
+      const found = vendors.map((v) => v.id);
+      const missing = vendor_ids.filter((id) => !found.includes(id));
+      logger.warn(`[${requestId}] Some vendors not found`, { missing: missing.length });
+    }
+
+    logger.debug(`[${requestId}] Vendors loaded`, { count: vendors.length });
+
+    // Preload existing mappings to prevent duplicate creates
     const existingMappings = await RfpVendors.findAll({
       where: {
         rfp_id,
         vendor_id: { [Op.in]: vendors.map((v) => v.id) },
       },
       transaction: t,
+      lock: true, // Prevent race conditions
     });
 
     const mappingByVendorId = new Map(
@@ -241,6 +202,13 @@ const sendRfpService = async (data) => {
     for (const vendor of vendors) {
       let mapping = mappingByVendorId.get(vendor.id);
 
+      // FIX #4: Validate vendor email before queueing
+      if (!vendor.email || typeof vendor.email !== "string" || !vendor.email.includes("@")) {
+        logger.debug(`[${requestId}] Skipping vendor (invalid email)`, { vendor_id: vendor.id, name: vendor.name });
+        continue;
+      }
+
+      // Create mapping if doesn't exist
       if (!mapping) {
         mapping = await RfpVendors.create(
           {
@@ -252,14 +220,35 @@ const sendRfpService = async (data) => {
           { transaction: t }
         );
         mappingByVendorId.set(vendor.id, mapping);
+        logger.debug(
+          `[${requestId}] Created RfpVendors mapping`,
+          { vendor_id: vendor.id, name: vendor.name }
+        );
+      } else {
+        // FIX #2: Skip if already sent - don't resend
+        if (mapping.invite_status === "sent") {
+          logger.debug(
+            `[${requestId}] Skipping vendor (already sent)`,
+            { vendor_id: vendor.id, name: vendor.name }
+          );
+          continue;
+        }
+
+          logger.debug(
+            `[${requestId}] Reusing RfpVendors mapping`,
+            { vendor_id: vendor.id, name: vendor.name, status: mapping.invite_status }
+          );
       }
 
+      // Generate or reuse reply token
       if (!mapping.reply_token) {
         const token = generateReplyToken();
         mapping.reply_token = token;
         await mapping.save({ transaction: t });
+        logger.debug(`[${requestId}] Generated reply token`, { vendor_id: vendor.id });
       }
 
+      // Build email content
       const { subject, text, html } = buildRfpInviteEmail({
         rfp,
         vendor,
@@ -271,7 +260,7 @@ const sendRfpService = async (data) => {
         replyToken: mapping.reply_token,
       });
 
-      // Keep all data we need for async sending
+      // Queue email for async sending
       emailsToSend.push({
         to: vendor.email,
         subject,
@@ -281,42 +270,65 @@ const sendRfpService = async (data) => {
         rfp_id,
         vendor_id: vendor.id,
         vendor_name: vendor.name,
-        mapping_id: mapping.id, // critical: avoid extra findOne later
+        mapping_id: mapping.id,
       });
 
-      // Mark as pending before we actually send
-      mapping.invite_status = "pending";
-      mapping.last_email_id = null;
-      await mapping.save({ transaction: t });
+      // Only update DB if status is NOT already sent (idempotent)
+      // This prevents re-sending already-sent emails
+      if (mapping.invite_status !== "sent") {
+        mapping.invite_status = "pending";
+        mapping.last_email_id = null;
+        await mapping.save({ transaction: t });
+      }
 
       invitedCount += 1;
     }
 
+    logger.info(`[${requestId}] Prepared vendors for invitation`, { count: invitedCount });
+
+    if (invitedCount === 0) {
+      logger.warn(
+        `[${requestId}] No vendors prepared for invitation (all already sent or invalid emails)`
+      );
+    }
+
+    // Update RFP status if moving from draft to sent
     if (invitedCount > 0 && rfp.status === "draft") {
       await rfp.update({ status: "sent" }, { transaction: t });
+      logger.debug(`[${requestId}] RFP status updated`, { from: "draft", to: "sent" });
     }
 
+    // Commit transaction - DB state locked in
     await t.commit();
+    logger.debug(`[${requestId}] Transaction committed`);
 
     // Async non-blocking email sending with bounded concurrency
+    // All complexity (retries, concurrency, DB updates) hidden in sendRfpInviteEmails
     if (emailsToSend.length > 0) {
-      setImmediate(() => {
-        // tune concurrency based on your provider / infra
-        processWithConcurrency(emailsToSend, 5, (emailData) =>
-          sendSingleInvite({ Emails, RfpVendors, emailData })
-        ).catch((err) => {
-          console.error(" Error in bulk invite sending:", err);
-        });
+      setImmediate(async () => {
+        try {
+          await sendRfpInviteEmails({
+            emailsToSend,
+            Emails,
+            RfpVendors,
+            requestId,
+          });
+        } catch (err) {
+          logger.error(`[${requestId}] Error in async email send`, { error: err.message });
+        }
       });
     }
+
+    logger.info(`[${requestId}] SendRfp response sent`, { invited_count: invitedCount });
 
     return {
       rfp_id,
       invited_count: invitedCount,
+      request_id: requestId, // Return for client to track in logs
     };
   } catch (error) {
     await t.rollback();
-    console.error(" Error in sendRfpService:", error);
+    logger.warn(`[${requestId}] SendRfp failed (rolled back)`, { error: error.message });
     throw error;
   }
 };

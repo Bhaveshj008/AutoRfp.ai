@@ -6,11 +6,14 @@ const {
   makeDynamicInclude,
 } = require("../utils/dynamicAssociations");
 const { parseProposalWithGroq } = require("../utils/groqClient");
-const { sendEmail } = require("../utils/emailClient");
 const {
   updateVendorOnAward,
   updateVendorOnReject,
 } = require("../utils/vendorRatingUtils");
+const {
+  sendRejectionEmail,
+  sendProposalEmails,
+} = require("../utils/emailSendingUtils");
 
 /**
  * Parse proposals from inbound emails using AI
@@ -312,6 +315,8 @@ const awardProposalService = async (data) => {
   const db = databases.RFP.DB_NAME;
   const { sequelize, Proposals, Rfps, Vendors } = getModels(db);
 
+  const requestId = `AWARD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`; // Request tracing
+
   const t = await sequelize.transaction();
   try {
     const { rfp_id, vendor_id } = data;
@@ -399,53 +404,27 @@ const awardProposalService = async (data) => {
       }
     });
 
-    // --------- Async emails after commit (award + rejections) ---------
+    // --------- Async emails after commit (award + auto-rejections) ---------
+    // Simple high-level API - all complexity hidden in emailSendingUtils
 
-    // Award email
-    if (vendor && vendor.email) {
-      setImmediate(async () => {
-        try {
-          const awardEmailBody = `Dear ${vendor.name},\n\nCongratulations! Your proposal for RFP "${rfp.title}" has been awarded.\n\nWe will contact you shortly with further details.\n\nBest regards,\nProcurement Team`;
-          await sendEmail({
-            to: vendor.email,
-            subject: `Proposal Awarded - ${rfp.title}`,
-            text: awardEmailBody,
-          });
-          console.log(` Award email sent to ${vendor.email}`);
-        } catch (err) {
-          console.error(
-            ` Failed to send award email to ${vendor.email}:`,
-            err.message
-          );
-        }
-      });
-    }
-
-    // Rejection emails to vendors rejected in THIS call, with concurrency
     if (rejectedVendorIds.length > 0) {
       setImmediate(async () => {
         try {
-          // We can reuse the same Vendors model; no transaction needed now
+          // Load vendors for rejection
           const rejectedVendors = await Vendors.findAll({
             where: { id: { [Op.in]: rejectedVendorIds } },
           });
 
-          await processWithConcurrency(
-            rejectedVendors,
-            5, // concurrency limit, tune as needed
-            async (rejVendor) => {
-              if (!rejVendor.email) return;
+          // Single call sends award email + all rejection emails with internal concurrency
+          const emailResult = await sendProposalEmails({
+            awardVendor: vendor,        // Award email to winning vendor
+            rejectVendors: rejectedVendors, // Auto-reject other vendors
+            rfp,
+            requestId,
+          });
 
-              const rejectionEmailBody = `Dear ${rejVendor.name},\n\nThank you for your proposal for RFP "${rfp.title}".\n\nWe regret to inform you that another proposal has been selected for this RFP. We appreciate your effort and would like to consider you for future opportunities.\n\nBest regards,\nProcurement Team`;
-
-              await sendEmail({
-                to: rejVendor.email,
-                subject: `RFP "${rfp.title}" - Proposal Not Selected`,
-                text: rejectionEmailBody,
-              });
-
-              console.log(` Rejection email sent to ${rejVendor.email}`);
-            }
+          console.log(
+            `[${requestId}] Proposal emails sent: award=${emailResult.award.sent}, rejections=${emailResult.rejections.completed}/${emailResult.rejections.total}`
           );
         } catch (err) {
           console.error(" Error sending rejection emails:", err.message);
@@ -510,15 +489,11 @@ const rejectProposalService = async (data) => {
     if (vendor && vendor.email && rfp) {
       setImmediate(async () => {
         try {
-          const rejectEmailBody = `Dear ${vendor.name},\n\nThank you for your proposal for RFP "${rfp.title}".\n\nUnfortunately, we have decided to proceed with another vendor at this time.\n\nWe appreciate your interest and hope to work with you on future opportunities.\n\nBest regards,\nProcurement Team`;
-
-          await sendEmail({
-            to: vendor.email,
-            subject: `Proposal Status Update - ${rfp.title}`,
-            text: rejectEmailBody,
+          await sendRejectionEmail({
+            vendor,
+            rfp,
+            type: "manual-reject",
           });
-
-          console.log(` Rejection email sent to ${vendor.email}`);
         } catch (err) {
           console.error(
             ` Failed to send rejection email to ${vendor.email}:`,
@@ -527,7 +502,6 @@ const rejectProposalService = async (data) => {
         }
       });
     }
-
 
     return {
       rfp_id,
